@@ -11,6 +11,7 @@ const ENUMS = {
 };
 
 const dateSelected = process.env.DATE_SELECTED || moment().format(ENUMS.DATE);
+let originalDate = true;
 let dateTracker = dateSelected;
 let dateInString = moment(dateSelected).format(ENUMS.DATE);
 let continueAddingText = true;
@@ -28,6 +29,7 @@ const buildMessage = (arr) => {
       ) {
         console.log('Date greater', arr[i].data.match(regexForDate)[0]);
         dateTracker = arr[i].data.match(regexForDate)[0];
+        originalDate = false;
         continue;
       } else if (
         arr[i].data.match(regexForDate)
@@ -37,6 +39,7 @@ const buildMessage = (arr) => {
       ) {
         console.log('Equal date', arr[i].data.match(regexForDate)[0]);
         dateTracker = arr[i].data.match(regexForDate)[0];
+        originalDate = false;
         continue;
       } else if (
         arr[i].data.match(regexForDate)
@@ -47,20 +50,25 @@ const buildMessage = (arr) => {
         console.log('Lower date', arr[i].data.match(regexForDate)[0]);
         dateTracker = arr[i].data.match(regexForDate)[0];
         continueAddingText = false;
+        originalDate = false;
         return;
       }
       console.log('Date trakcer', dateTracker);
       console.log(finalMessage[`${Date.parse(dateTracker)}`])
       console.log('Final text', JSON.stringify(finalMessage));
-      continueAddingText
-        ? (
-            finalMessage[`${Date.parse(dateTracker)}`]
-              ? finalMessage[`${Date.parse(dateTracker)}`].text += arr[i].data
-              : finalMessage[`${Date.parse(dateTracker)}`] = {
-                  text: arr[i].data,
-                }
-          )
-        : i = arr.length;
+
+      if (!originalDate) {
+        continueAddingText
+          ? (
+              finalMessage[`${Date.parse(dateTracker)}`]
+                ? finalMessage[`${Date.parse(dateTracker)}`].text += arr[i].data
+                : finalMessage[`${Date.parse(dateTracker)}`] = {
+                    text: arr[i].data,
+                  }
+            )
+          : i = arr.length;
+      }
+      console.log('Checking text', finalMessage);
       continue;
     }
 
@@ -121,7 +129,7 @@ const buildTextMessage = (arr, message) => {
     const linkKeys = Object.keys(message[key]).filter(x => x.includes('link'));
 
     finalTextMessage += '\n';
-    
+
     for (let linkKey of linkKeys) {
       finalTextMessage += '\n' + `${linkKey}: ${message[key][linkKey]}`;
     }
@@ -196,11 +204,12 @@ exports.handler = async (event) => {
 
     const textMessage = buildTextMessage(datesToSendAndSave, finalMessage);
     console.log('text message', textMessage);
-    // const sendMessage = await sns.publish({
-    //   Message: message,
-    //   TopicArn: process.env.TOPIC_ARN,
-    // }).promise();
-    // console.log('Send Message', sendMessage);
+
+    const sendMessage = await sns.publish({
+      Message: textMessage,
+      TopicArn: process.env.TOPIC_ARN,
+    }).promise();
+    console.log('Result from sending Message to topic', sendMessage);
   } catch (err) {
     console.log('Error sending info to SNS topic', err);
     throw err;
