@@ -183,7 +183,7 @@ exports.handler = async (event) => {
     const getJustDatesForArrayOfKeys = fullArrayOfKeys.map(z => z.date);
     console.log('just dates', getJustDatesForArrayOfKeys);
     datesToSendAndSave = getJustDatesForArrayOfKeys.filter(x => !matchedKeys.includes(x));
-    console.log('checking the difference', getDifference);
+    console.log('checking the difference', datesToSendAndSave);
   } catch (err) {
     console.log('Error getting from dynamoDB', err);
     throw err;
