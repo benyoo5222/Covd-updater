@@ -1,39 +1,20 @@
+const aws = require('aws-sdk');
 const axios = require('axios');
 const cheerio = require('cheerio');
 const moment = require('moment');
 
-const dateSelected = 'March 19, 2020' || moment().format('MMMM DD, YYYY');
+const documentClient = new aws.DynamoDB.DocumentClient();
+
+const ENUMS = {
+  DATE: 'MMMM DD, YYYY',
+};
+
+const dateSelected = process.env.DATE_SELECTED || moment().format(ENUMS.DATE);
 let dateTracker = dateSelected;
-let dateInString = moment(dateSelected).format('MMMM DD, YYYY');
+let dateInString = moment(dateSelected).format(ENUMS.DATE);
 let continueAddingText = true;
 const finalMessage = {};
 const regexForDate = /(Jan(uary)?|Feb(ruary)?|Mar(ch)?|Apr(il)?|May|Jun(e)?|Jul(y)?|Aug(ust)?|Sep(tember)?|Oct(ober)?|Nov(ember)?|Dec(ember)?)\s+\d{1,2},\s+\d{4}/;
-exports.handler = async (event) => {
-  try {
-    console.log('Invoked with event', event);
-    const result = await axios.get(
-      'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html'
-    );
-    const $ = cheerio.load(result.data);
-    const loopSite = $('.mwspanel .section').map((index, element) => {
-      try {
-        buildMessage(element.children);
-        for (let key in finalMessage) {
-          console.log('Checking key', key);
-          finalMessage[key].text =
-            finalMessage[key].text.replace(/^\s+|\s+$/g, '');
-        }
-        console.log('finalMessage', finalMessage);
-      } catch (err) {
-        console.log('Error each', err);
-      }
-    }).get();
-    console.log('Finale message after all the looping', finalMessage);
-  } catch (err) {
-    console.log('err', err);
-    throw err;
-  }
-};
 
 const buildMessage = (arr) => {
   for (let i = 0; i < arr.length; i++) {
@@ -85,7 +66,7 @@ const buildMessage = (arr) => {
     if (arr[i].name === 'a') {
       const keys = Object.keys(finalMessage[Date.parse(dateTracker)]).filter(x => x.includes('link'));
       finalMessage[Date.parse(dateTracker)][`link${keys.length + 1}`] =
-        'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html'
+        process.env.WEBSITE //'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html'
         + arr[i].attribs.href;
     }
 
@@ -94,4 +75,59 @@ const buildMessage = (arr) => {
     }
   }
   return finalMessage;
+};
+
+const buildParams = (message) => {
+  const arr = [];
+
+  for (let key in message) {
+    arr.push({
+     date: key,
+    });
+  }
+
+  return arr;
+};
+
+const params = (arr) => ({
+  RequestItems: {
+    [process.env.TABLE_NAME]: {
+      Keys: arr,
+    },
+  }
+});
+
+exports.handler = async (event) => {
+  try {
+    console.log('Invoked with event', event);
+    const result = await axios.get(
+      process.env.WEBSITE, //'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html'
+    );
+    const $ = cheerio.load(result.data);
+    const loopSite = $('.mwspanel .section').map((index, element) => {
+      try {
+        buildMessage(element.children);
+        for (let key in finalMessage) {
+          finalMessage[key].text =
+            finalMessage[key].text.replace(/^\s+|\s+$/g, '');
+        }
+      } catch (err) {
+        console.log('Error each', err);
+      }
+    }).get();
+    console.log('Finale message after all the looping', finalMessage);
+  } catch (err) {
+    console.log('err', err);
+    throw err;
+  }
+
+  try {
+    // Check against DynamoDB Table
+    const arrayOfKeys = buildParams(finalMessage);
+    const queryDynamoWithEpochDate = await documentClient.batchGet(params(arrayOfKeys)).promise();
+    console.log('result from querying dynamoDB', queryDynamoWithEpochDate);
+  } catch (err) {
+    console.log('Error getting from dynamoDB', err);
+    throw err;
+  }
 };
