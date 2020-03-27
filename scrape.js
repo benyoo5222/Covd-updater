@@ -117,15 +117,17 @@ const buildTextMessage = (arr, message) => {
   let finalTextMessage = '';
 
   for (let key of arr) {
-    finalTextMessage += `${moment(Number(key)).format(ENUMS.DATE)}: ${message[key]}`;
+    finalTextMessage += '\n' + `${moment(Number(key)).format(ENUMS.DATE)}: ${message[key].text}`;
     const linkKeys = Object.keys(message[key]).filter(x => x.includes('link'));
 
+    finalTextMessage += '\n';
+    
     for (let linkKey of linkKeys) {
       finalTextMessage += '\n' + `${linkKey}: ${message[key][linkKey]}`;
     }
     finalTextMessage += '\n';
   }
-
+  console.log('message before trim', finalTextMessage);
   finalTextMessage = finalTextMessage.trim();
   return finalTextMessage;
 };
