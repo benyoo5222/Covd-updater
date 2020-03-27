@@ -117,7 +117,7 @@ const buildTextMessage = (arr, message) => {
   let finalTextMessage = '';
 
   for (let key of arr) {
-    finalTextMessage += `${moment(key).format(ENUMS.DATE)}: ${message[key]}`;
+    finalTextMessage += `${moment(Number(key)).format(ENUMS.DATE)}: ${message[key]}`;
     const linkKeys = Object.keys(message[key]).filter(x => x.includes('link'));
 
     for (let linkKey of linkKeys) {
