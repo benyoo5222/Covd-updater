@@ -8,15 +8,16 @@ let dateInString = moment(dateSelected).format('MMMM DD, YYYY');
 let continueAddingText = true;
 const finalMessage = {};
 const regexForDate = /(Jan(uary)?|Feb(ruary)?|Mar(ch)?|Apr(il)?|May|Jun(e)?|Jul(y)?|Aug(ust)?|Sep(tember)?|Oct(ober)?|Nov(ember)?|Dec(ember)?)\s+\d{1,2},\s+\d{4}/;
-const getWebContent = async () => {
+exports.handler = async (event) => {
   try {
+    console.log('Invoked with event', event);
     const result = await axios.get(
       'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html'
     );
     const $ = cheerio.load(result.data);
-    const loopSite = $('.mwspanel .section').map(async(index, element) => {
+    const loopSite = $('.mwspanel .section').map((index, element) => {
       try {
-        await buildMessage(element.children);
+        buildMessage(element.children);
         for (let key in finalMessage) {
           console.log('Checking key', key);
           finalMessage[key].text =
@@ -27,13 +28,14 @@ const getWebContent = async () => {
         console.log('Error each', err);
       }
     }).get();
+    console.log('Finale message after all the looping', finalMessage);
   } catch (err) {
     console.log('err', err);
     throw err;
   }
 };
 
-const buildMessage = async (arr) => {
+const buildMessage = (arr) => {
   for (let i = 0; i < arr.length; i++) {
     if (arr[i].data) {
       if (
@@ -88,9 +90,8 @@ const buildMessage = async (arr) => {
     }
 
     if (arr[i].children) {
-      await buildMessage(arr[i].children);
+      buildMessage(arr[i].children);
     }
   }
   return finalMessage;
-}
-getWebContent();
+};
