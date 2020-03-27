@@ -14,7 +14,7 @@ const getWebContent = async () => {
       'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html'
     );
     const $ = cheerio.load(result.data);
-    const testing = $('.mwspanel .section').map(async(index, element) => {
+    const loopSite = $('.mwspanel .section').map(async(index, element) => {
       try {
         await buildMessage(element.children);
         for (let key in finalMessage) {
@@ -26,10 +26,10 @@ const getWebContent = async () => {
       } catch (err) {
         console.log('Error each', err);
       }
-
     }).get();
   } catch (err) {
     console.log('err', err);
+    throw err;
   }
 };
 
