@@ -185,14 +185,12 @@ const buildLinkTextParts = (arr, numberOfParts, string) => {
 
 const buildTextMessage = (arr, message) => {
   let arrayOfParts = [];
-//
+
   for (let key of arr) {
     let bodyText = '';
     let linkText = '';
     bodyText += '\n' + `${moment(Number(key)).format(ENUMS.DATE)}: ${message[key].text}`;
     const linkKeys = Object.keys(message[key]).filter(x => x.includes('link'));
-
-    //finalText += '\n';
 
     for (let linkKey of linkKeys) {
       linkText += '\n' + `${linkKey}: ${message[key][linkKey]}`;
@@ -212,7 +210,7 @@ const buildTextMessage = (arr, message) => {
 
     if (bytesSizeOfBodyText > 650 && bytesSizeOfLinkText > 650) {
       console.log('both text already greater than 650');
-      // TO DO
+
       const multiplierForAddingText = Math.ceil(bytesSizeOfBodyText / 650);
       const bytesOfAddingContinuedText = Buffer.byteLength(`(Continued)- `, 'utf8') * multiplierForAddingText;
 
@@ -225,7 +223,7 @@ const buildTextMessage = (arr, message) => {
       arrayOfParts = buildLinkTextParts(arrayOfParts, numberOfPartsForLinks, linkText);
     } else if (bytesSizeOfBodyText > 650 && bytesSizeOfLinkText < 650) {
       console.log('body text greater than 650');
-      // TO DO
+
       const multiplierForAddingText = Math.ceil(bytesSizeOfBodyText / 650);
       const bytesOfAddingContinuedText = Buffer.byteLength(`(Continued)- `, 'utf8') * multiplierForAddingText;
 
@@ -259,61 +257,7 @@ const buildTextMessage = (arr, message) => {
       }
     }
     console.log('array of parts', arrayOfParts);
-    //finalText += '\n';
   }
-  // console.log('message before trim', bodyText);
-  // bodyText = bodyText.trim();
-  // console.log('bodyText after trim', bodyText);
-  //
-  // console.log('link text before trim', linkText);
-  // linkText = linkText.trim();
-  // console.log('link text after trim', linkText);
-  //
-  // const bytesSizeOfBodyText = Buffer.byteLength(bodyText, 'utf8');
-  // const bytesSizeOfLinkText = Buffer.byteLength(linkText, 'utf8');
-  // console.log('checking size', bytesSizeOfBodyText, bytesSizeOfLinkText, typeof(bytesSizeOfBodyText));
-  //
-  // if (bytesSizeOfBodyText > 650 && bytesSizeOfLinkText > 650) {
-  //   console.log('both text already greater than 650');
-  //   // TO DO
-  //   const multiplierForAddingText = Math.ceil(bytesSizeOfBodyText / 650);
-  //   const bytesOfAddingContinuedText = Buffer.byteLength(`(Continued)- `, 'utf8') * multiplierForAddingText;
-  //
-  //   const numberOfParts = Math.ceil((bytesSizeOfBodyText + bytesOfAddingContinuedText) / 650);
-  //
-  //   arrayOfParts = buildTextParts(arrayOfParts, numberOfParts, bodyText);
-  //
-  //   const numberOfPartsForLinks = Math.ceil(bytesSizeOfLinkText / 650);
-  //
-  //   arrayOfParts = buildLinkTextParts(arrayOfParts, numberOfPartsForLinks, linkText);
-  // } else if (bytesSizeOfBodyText > 650 && bytesSizeOfLinkText < 650) {
-  //   console.log('body text greater than 650');
-  //   // TO DO
-  //   const multiplierForAddingText = Math.ceil(bytesSizeOfBodyText / 650);
-  //   const bytesOfAddingContinuedText = Buffer.byteLength(`(Continued)- `, 'utf8') * multiplierForAddingText;
-  //
-  //   const numberOfParts = Math.ceil((bytesSizeOfBodyText + bytesOfAddingContinuedText) / 650);
-  //
-  //   arrayOfParts = buildTextParts(arrayOfParts, numberOfParts, bodyText);
-  //   arrayOfParts.push(linkText);
-  // } else if (bytesSizeOfLinkText > 650 && bytesSizeOfBodyText < 650) {
-  //   console.log('link size bigger');
-  //   arrayOfParts.push(bodyText);
-  //
-  //   const numberOfPartsForLinks = Math.ceil(bytesSizeOfLinkText / 650);
-  //
-  //   arrayOfParts = buildLinkTextParts(arrayOfParts, numberOfPartsForLinks, linkText);
-  // } else {
-  //   console.log('both smaller');
-  //   if (Buffer.byteLength(bodyText + linkText, 'utf8') > 650) {
-  //     arrayOfParts[0] = bodyText;
-  //     arrayOfParts[1] = linkText;
-  //   } else {
-  //     arrayOfParts.push(
-  //       bodyText + '\n' + linkText
-  //     );
-  //   }
-  // }
   console.log('final of parts', arrayOfParts);
   return arrayOfParts;
 };
@@ -331,15 +275,12 @@ exports.handler = async (event) => {
       process.env.WEBSITE, //'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html'
     );
     const $ = cheerio.load(result.data);
-    const loopSite = $('.mwspanel .section').map((index, element) => {
-      try {
-        buildMessage(element.children);
-        for (let key in finalMessage) {
-          finalMessage[key].text =
-            finalMessage[key].text.replace(/^\s+|\s+$/g, '');
-        }
-      } catch (err) {
-        console.log('Error each', err);
+
+    const loopSite = $('.mwsbodytext').map((index, element) => {
+      buildMessage(element.children);
+      for (let key in finalMessage) {
+        finalMessage[key].text =
+          finalMessage[key].text.replace(/^\s+|\s+$/g, '');
       }
     }).get();
     console.log('Finale message after all the looping', finalMessage);
@@ -384,133 +325,21 @@ exports.handler = async (event) => {
 
   try {
     // send message to sns topic
-    let temp = {
-      '1585180800000': {
-        text: '\n' +
-          'Canada Emergency Response Benefit – The Agency has updated information on the new Canada Emergency Response Benefit.\n',
-          link1: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html#individuals',
-          link2: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html#business',
-          link3: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html#charities',
-          link4: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html/en/revenue-agency/campaigns/covid-19-update/covid-19-call-centres.html',
-          link5: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html/en/revenue-agency/campaigns/covid-19-update/covid-19-charities.html',
-          link6: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html#individuals',
-          link7: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html#business',
-          link8: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html#charities',
-          link9: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html/en/revenue-agency/campaigns/covid-19-update/covid-19-call-centres.html',
-          link10: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html/en/revenue-agency/campaigns/covid-19-update/covid-19-charities.html'
-      },
-      '1584662400000': {
-        text: '\n' +
-          'Tax-filing and payment deadlines – The Agency has updated messaging on the payment deadlines for individuals and businesses, and has extended the deadline for charities.\n' +
-          'New pages – The Agency has published two pages with updates on its programs and services:\n' +
-          '\n' +
-          'Call centres\n' +
-          'Charities\n' +
-          '\n' +
-          '\n' +
-            'Tax-filing and payment deadlines – The Agency has updated messaging on the payment deadlines for individuals and businesses, and has extended the deadline for charities.\n' +
-            'New pages – The Agency has published two pages with updates on its programs and services:\n' +
-            '\n' +
-            'Call centres\n' +
-            'Charities\n' +
-            '\n' +
-            'Canada Emergency Response Benefit – The Agency has updated information on the new Canada Emergency Response Benefit.\n' +
-            'Canada Emergency Response Benefit – The Agency has updated information on the new Canada Emergency Response Benefit.\n' +
-            'Canada Emergency Response Benefit – The Agency has updated information on the new Canada Emergency Response Benefit.\n' +
-            'Canada Emergency Response Benefit – The Agency has updated information on the new Canada Emergency Response Benefit.\n' +
-            'Canada Emergency Response Benefit – The Agency has updated information on the new Canada Emergency Response Benefit.\n',
-            link1: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html#individuals',
-            link2: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html#business',
-            link3: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html#charities',
-            link4: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html/en/revenue-agency/campaigns/covid-19-update/covid-19-call-centres.html',
-            link5: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html/en/revenue-agency/campaigns/covid-19-update/covid-19-charities.html',
-            link6: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html#individuals',
-            link7: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html#business',
-            link8: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html#charities',
-            link9: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html/en/revenue-agency/campaigns/covid-19-update/covid-19-call-centres.html',
-            link10: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html/en/revenue-agency/campaigns/covid-19-update/covid-19-charities.html'
-      }
-    }
-    const textMessage = buildTextMessage(datesToSendAndSave, temp);
+    const textMessage = buildTextMessage(datesToSendAndSave, finalMessage);
     console.log('text message', textMessage);
     console.log('check length of parts', textMessage.length);
 
     for (let message of textMessage) {
       await sleep(1000);
-      // console.log('message before sending', message);
-      // const sendMessage = await sns.publish({
-      //   Message: message,
-      //   TopicArn: process.env.TOPIC_ARN,
-      // }).promise();
-      // console.log('Result from sending Message to topic', sendMessage);
+      console.log('message before sending', message);
+      const sendMessage = await sns.publish({
+        Message: message,
+        TopicArn: process.env.TOPIC_ARN,
+      }).promise();
+      console.log('Result from sending Message to topic', sendMessage);
     }
-
-    // const promises = textMessage.map(async (message) => {
-    //   console.log('Each part', message);
-    //   const sendMessage = await sns.publish({
-    //     Message: message,
-    //     TopicArn: process.env.TOPIC_ARN,
-    //   }).promise();
-    //   console.log('Result from sending Message to topic', sendMessage);
-    // });
-    // const resolve = await Promise.all(promises);
-    // console.log('resolved promises', resolve);
-    // const sendMessage = await sns.publish({
-    //   Message: textMessage,
-    //   TopicArn: process.env.TOPIC_ARN,
-    // }).promise();
-    // console.log('Result from sending Message to topic', sendMessage);
   } catch (err) {
     console.log('Error sending info to SNS topic', err);
     throw err;
   }
 };
-
-
-// {
-//   '1585180800000': {
-//     text: '\n' +
-//       'Canada Emergency Response Benefit – The Agency has updated information on the new Canada Emergency Response Benefit.\n',
-//       link1: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html#individuals',
-//       link2: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html#business',
-//       link3: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html#charities',
-//       link4: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html/en/revenue-agency/campaigns/covid-19-update/covid-19-call-centres.html',
-//       link5: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html/en/revenue-agency/campaigns/covid-19-update/covid-19-charities.html',
-//       link6: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html#individuals',
-//       link7: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html#business',
-//       link8: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html#charities',
-//       link9: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html/en/revenue-agency/campaigns/covid-19-update/covid-19-call-centres.html',
-//       link10: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html/en/revenue-agency/campaigns/covid-19-update/covid-19-charities.html'
-//   },
-//   '1584662400000': {
-//     text: '\n' +
-//       'Tax-filing and payment deadlines – The Agency has updated messaging on the payment deadlines for individuals and businesses, and has extended the deadline for charities.\n' +
-//       'New pages – The Agency has published two pages with updates on its programs and services:\n' +
-//       '\n' +
-//       'Call centres\n' +
-//       'Charities\n' +
-//       '\n' +
-//       '\n' +
-//         'Tax-filing and payment deadlines – The Agency has updated messaging on the payment deadlines for individuals and businesses, and has extended the deadline for charities.\n' +
-//         'New pages – The Agency has published two pages with updates on its programs and services:\n' +
-//         '\n' +
-//         'Call centres\n' +
-//         'Charities\n' +
-//         '\n' +
-//         'Canada Emergency Response Benefit – The Agency has updated information on the new Canada Emergency Response Benefit.\n' +
-//         'Canada Emergency Response Benefit – The Agency has updated information on the new Canada Emergency Response Benefit.\n' +
-//         'Canada Emergency Response Benefit – The Agency has updated information on the new Canada Emergency Response Benefit.\n' +
-//         'Canada Emergency Response Benefit – The Agency has updated information on the new Canada Emergency Response Benefit.\n' +
-//         'Canada Emergency Response Benefit – The Agency has updated information on the new Canada Emergency Response Benefit.\n',
-//         link1: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html#individuals',
-//         link2: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html#business',
-//         link3: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html#charities',
-//         link4: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html/en/revenue-agency/campaigns/covid-19-update/covid-19-call-centres.html',
-//         link5: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html/en/revenue-agency/campaigns/covid-19-update/covid-19-charities.html',
-//         link6: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html#individuals',
-//         link7: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html#business',
-//         link8: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html#charities',
-//         link9: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html/en/revenue-agency/campaigns/covid-19-update/covid-19-call-centres.html',
-//         link10: 'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html/en/revenue-agency/campaigns/covid-19-update/covid-19-charities.html'
-//   }
-// }
