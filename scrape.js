@@ -75,7 +75,7 @@ const buildMessage = (arr) => {
     if (arr[i].name === 'a') {
       const keys = Object.keys(finalMessage[Date.parse(dateTracker)]).filter(x => x.includes('link'));
       finalMessage[Date.parse(dateTracker)][`link${keys.length + 1}`] =
-        process.env.WEBSITE //'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html'
+        process.env.WEBSITE // https://www.canada.ca
         + arr[i].attribs.href;
     }
 
@@ -265,24 +265,28 @@ const buildTextMessage = (arr, message) => {
 const sleep = (ms) => {
   console.log('should see each second')
   return new Promise(resolve => setTimeout(resolve, ms));
-}
+};
 
 exports.handler = async (event) => {
   let datesToSendAndSave = [];
   try {
     console.log('Invoked with event', event);
+    console.log('Check!', `${process.env.WEBSITE}${event.PATH}`)
     const result = await axios.get(
-      process.env.WEBSITE, //'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html'
+      `${process.env.WEBSITE}${event.PATH}`
+      // process.env.WEBSITE + process.env.PATH //'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html'
     );
     const $ = cheerio.load(result.data);
 
     const loopSite = $('.mwsbodytext').map((index, element) => {
+      console.log('$', $);
       buildMessage(element.children);
       for (let key in finalMessage) {
         finalMessage[key].text =
           finalMessage[key].text.replace(/^\s+|\s+$/g, '');
       }
     }).get();
+    console.log('get links', $('a').text());
     console.log('Finale message after all the looping', finalMessage);
   } catch (err) {
     console.log('err', err);
