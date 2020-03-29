@@ -121,6 +121,37 @@ const params = (arr) => ({
   }
 });
 
+const buildUpdateParams = (message) => {
+  const arr = [];
+
+
+  for (let key in message) {
+    let tempObj = {};
+    const linkKeys = Object.keys(message[key]).filter(x => x.includes('link'));
+
+    for (let linkKey of linkKeys) {
+      tempObj[`${linkKey}`] = `${message[key][linkKey]}`;
+    }
+
+    arr.push({
+      PutRequest: {
+        Item: {
+          date: key,
+          ...tempObj,
+        },
+      },
+    });
+  }
+
+  return arr;
+};
+
+const paramsForUpdate = (arr) => ({
+  RequestItems: {
+    [process.env.TABLE_NAME]: arr,
+  }
+});
+
 const buildTextParts = (arr, numberOfParts, string) => {
   let counter = 650;
   console.log('number of parts', numberOfParts);
@@ -274,7 +305,6 @@ exports.handler = async (event) => {
     console.log('Check!', `${process.env.WEBSITE}${event.PATH}`)
     const result = await axios.get(
       `${process.env.WEBSITE}${event.PATH}`
-      // process.env.WEBSITE + process.env.PATH //'https://www.canada.ca/en/revenue-agency/campaigns/covid-19-update.html'
     );
     const $ = cheerio.load(result.data);
 
@@ -344,6 +374,23 @@ exports.handler = async (event) => {
     }
   } catch (err) {
     console.log('Error sending info to SNS topic', err);
+    throw err;
+  }
+
+  try {
+    const arrayOfUpdateParams = buildUpdateParams(finalMessage);
+    const batchOfUpdateParams = batchItems(arrayOfUpdateParams, 25);
+    const batchUpdateDynamoDB = await Promise.all(batchOfUpdateParams.map(async (updateInfo) => {
+      try {
+        const resultFromBatchUpdate = await documentClient.batchWrite(paramsForUpdate(updateInfo)).promise();
+        console.log('result from batch update', JSON.stringify(resultFromBatchUpdate));
+      } catch (err) {
+        console.log('Error batch getting items', err);
+        throw err;
+      }
+    }));
+  } catch (err) {
+    console.log('Error updating dynamoDB', err);
     throw err;
   }
 };
