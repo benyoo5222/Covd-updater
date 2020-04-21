@@ -138,6 +138,7 @@ const buildUpdateParams = (message) => {
         Item: {
           date: key,
           ...tempObj,
+          text: message[key].text,
         },
       },
     });
@@ -378,7 +379,13 @@ exports.handler = async (event) => {
   }
 
   try {
-    const arrayOfUpdateParams = buildUpdateParams(finalMessage);
+    const objectWithJustTheNewDates = {};
+    datesToSendAndSave.forEach(date => {
+      objectWithJustTheNewDates[date] = {
+        ...finalMessage[date],
+      };
+    });
+    const arrayOfUpdateParams = buildUpdateParams(objectWithJustTheNewDates);
     const batchOfUpdateParams = batchItems(arrayOfUpdateParams, 25);
     const batchUpdateDynamoDB = await Promise.all(batchOfUpdateParams.map(async (updateInfo) => {
       try {
