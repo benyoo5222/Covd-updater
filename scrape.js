@@ -319,6 +319,12 @@ exports.handler = async (event) => {
     }).get();
     console.log('get links', $('a').text());
     console.log('Finale message after all the looping', finalMessage);
+
+    const checkingForKeys = Object.keys(finalMessage);
+
+    if (checkingForKeys.length === 0) {
+      return 'No New Info';
+    }
   } catch (err) {
     console.log('err', err);
     throw err;
@@ -353,6 +359,10 @@ exports.handler = async (event) => {
     console.log('just dates', getJustDatesForArrayOfKeys);
     datesToSendAndSave = getJustDatesForArrayOfKeys.filter(x => !matchedKeys.includes(x));
     console.log('checking the difference', datesToSendAndSave);
+
+    if (datesToSendAndSave.length === 0) {
+      return 'Already Saved';
+    }
   } catch (err) {
     console.log('Error getting from dynamoDB', err);
     throw err;
